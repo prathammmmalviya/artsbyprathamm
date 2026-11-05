@@ -47,7 +47,9 @@ function renderGallery() {
   }
   gallery.innerHTML = artworks.map((art, i) => `
     <button class="art-card ${i===0?'card-large':''}" data-art-id="${escapeHtml(art.id)}" data-category="${escapeHtml(art.category)}">
-      <div class="art-image artwork-photo" style="background-image:url('${escapeHtml(art.image_url)}')"><span class="art-index">${String(i+1).padStart(2,'0')}</span></div>
+      <div class="art-image artwork-photo">
+  <img class="artwork-thumb" src="${escapeHtml(art.image_url)}" alt="${escapeHtml(art.title)}">
+  <span class="art-index">${String(i+1).padStart(2,'0')}</span></div>
       <div class="card-meta"><div><h3>${escapeHtml(art.title)}</h3><p>${escapeHtml(art.medium || '')} · ${escapeHtml(art.category || '')}</p><div class="card-sale-row"><strong>${money(art.price)}</strong><span>${escapeHtml(art.availability || 'Enquire')}</span></div></div><span class="card-arrow">VIEW & ENQUIRE ↗</span></div>
     </button>`).join('');
   gallery.querySelectorAll('.art-card').forEach(card => card.addEventListener('click', () => {
