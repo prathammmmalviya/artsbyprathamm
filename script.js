@@ -93,6 +93,7 @@ async function loadArtworks() {
     return;
   }
   artworks = data || [];
+  document.getElementById('work-count').textContent = String(artworks.length).padStart(2, '0');
   renderGallery();
 }
 document.getElementById('open-admin').addEventListener('click', async () => {
