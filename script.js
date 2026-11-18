@@ -50,12 +50,72 @@ function renderGallery() {
   
   <div class="art-image artwork-photo" style="background-image:url('${escapeHtml(art.image_url)}')">
   <span class="art-index">${String(i+1).padStart(2,'0')}</span></div>
-      <div class="card-meta"><div><h3>${escapeHtml(art.title)}</h3><p>${escapeHtml(art.medium || '')} · ${escapeHtml(art.category || '')}</p><div class="card-sale-row"><strong>${money(art.price)}</strong><span>${escapeHtml(art.availability || 'Enquire')}</span></div></div><span class="card-arrow">VIEW & ENQUIRE ↗</span></div>
+      <div class="card-meta"><div><h3>${escapeHtml(art.title)}</h3><p>${escapeHtml(art.medium || '')} · ${escapeHtml(art.category || '')}</p><div class="card-sale-row"><strong>${money(art.price)}</strong><span>${escapeHtml(art.availability || 'Enquire')}</span></div></div><span class="card-arrow">VIEW & BUY ↗</span></div>
     </button>`).join('');
   gallery.querySelectorAll('.art-card').forEach(card => card.addEventListener('click', () => {
     const art = artworks.find(item => String(item.id) === card.dataset.artId);
     if (art) openArtworkDetails(art);
   }));
+}
+const UPI_ID = (window.PORTFOLIO_UPI_ID || '').trim();
+const UPI_NAME = window.PORTFOLIO_UPI_NAME || 'Arts by Pratham';
+const BLOCKED_STATUSES = ['sold', 'not for sale', 'reserved'];
+
+function safePayLink(url) {
+  try {
+    const u = new URL(String(url || '').trim());
+    return u.protocol === 'https:' ? u.href : '';
+  } catch { return ''; }
+}
+function renderBuyBox(art) {
+  const box = document.getElementById('buy-box');
+  const status = String(art.availability || 'Available').trim();
+  const price = Number(art.price);
+  const hasPrice = Number.isFinite(price) && price > 0;
+
+  if (BLOCKED_STATUSES.includes(status.toLowerCase())) {
+    box.innerHTML = `<button class="buy-btn" type="button" disabled>${escapeHtml(status)}</button>`;
+    return;
+  }
+  if (!hasPrice) { box.innerHTML = ''; return; } // no price set: enquiry only
+
+  const advance = status.toLowerCase() === 'made to order';
+  const payLink = safePayLink(art.pay_link);
+  const note = `Artwork: ${art.title}`;
+  const upiLink = UPI_ID
+    ? `upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent(UPI_NAME)}&am=${price.toFixed(2)}&cu=INR&tn=${encodeURIComponent(note)}`
+    : '';
+  const paidSubject = encodeURIComponent(`Payment done: ${art.title}`);
+  const paidBody = encodeURIComponent(
+    `Hello, I have paid for "${art.title}" (${money(price)}).\n\nName:\nPhone:\nShipping address:\nPayment reference / screenshot:`);
+  const paidLink = `mailto:${contactEmail}?subject=${paidSubject}&body=${paidBody}`;
+
+  const methods = [];
+  if (payLink) methods.push(`<a class="pay-method" href="${escapeHtml(payLink)}" target="_blank" rel="noopener noreferrer"><strong>Card · UPI · Netbanking</strong><small>Secure online payment</small></a>`);
+  if (upiLink) methods.push(`<a class="pay-method" href="${escapeHtml(upiLink)}"><strong>Pay with UPI app</strong><small>GPay, PhonePe, Paytm (on phone)</small></a>`);
+  methods.push(`<a class="pay-method" href="mailto:${contactEmail}?subject=${encodeURIComponent('Bank transfer: ' + art.title)}"><strong>Bank transfer</strong><small>Email me for account details</small></a>`);
+
+  box.innerHTML = `
+    <button class="buy-btn" type="button" id="buy-now-btn" aria-expanded="false">${advance ? 'Pay advance' : 'Buy now'} · ${money(price)} <span>↗</span></button>
+    <div class="pay-panel" id="pay-panel" hidden>
+      <p class="pay-title">Choose how to pay</p>
+      ${methods.join('')}
+      ${upiLink ? `<p class="pay-upi">UPI ID: <code>${escapeHtml(UPI_ID)}</code> <button type="button" id="copy-upi">Copy</button></p>` : ''}
+      <p class="pay-note">${advance ? 'This piece is made to order, so the advance secures your commission. ' : ''}After paying, <a href="${paidLink}">email me</a> your name, phone, shipping address and payment reference so I can arrange delivery.</p>
+    </div>`;
+
+  const buyBtn = document.getElementById('buy-now-btn');
+  const panel = document.getElementById('pay-panel');
+  buyBtn.addEventListener('click', () => {
+    panel.hidden = !panel.hidden;
+    buyBtn.setAttribute('aria-expanded', String(!panel.hidden));
+  });
+  const copyBtn = document.getElementById('copy-upi');
+  if (copyBtn) copyBtn.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(UPI_ID); copyBtn.textContent = 'Copied'; }
+    catch { copyBtn.textContent = UPI_ID; }
+    setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1800);
+  });
 }
 function openArtworkDetails(art) {
   document.getElementById('details-image').src = art.image_url;
@@ -68,7 +128,8 @@ function openArtworkDetails(art) {
   document.getElementById('details-availability').textContent = art.availability || 'Ask';
   const subject = encodeURIComponent(`Artwork enquiry: ${art.title}`);
   const body = encodeURIComponent(`Hello, I am interested in "${art.title}". Please share more details.`);
-  document.getElementById('details-enquire').href = `mailto:${window.PORTFOLIO_EMAIL || 'your-email@example.com'}?subject=${subject}&body=${body}`;
+  document.getElementById('details-enquire').href = `mailto:${contactEmail}?subject=${subject}&body=${body}`;
+  renderBuyBox(art);
   detailsDialog.showModal();
 }
 document.getElementById('details-close').addEventListener('click', () => detailsDialog.close());
@@ -176,6 +237,7 @@ document.getElementById('artwork-form').addEventListener('submit', async event =
       price: document.getElementById('art-price').value ? Number(document.getElementById('art-price').value) : null,
       availability: document.getElementById('art-availability').value,
       description: document.getElementById('art-description').value.trim(),
+      pay_link: document.getElementById('art-pay-link').value.trim(),
       image_url: imageUrl,
       owner_id: currentUser.id
     };
@@ -213,6 +275,7 @@ async function loadAdminList() {
     document.getElementById('art-price').value = art.price ?? '';
     document.getElementById('art-availability').value = art.availability || 'Available';
     document.getElementById('art-description').value = art.description || '';
+    document.getElementById('art-pay-link').value = art.pay_link || '';
     document.getElementById('save-artwork-button').innerHTML = 'Update artwork <span>↗</span>';
     document.getElementById('cancel-edit').hidden = false;
     document.getElementById('artwork-message').textContent = 'Choose a new photo only if you want to replace the current one.';

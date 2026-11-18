@@ -55,3 +55,11 @@ Your Supabase project URL and anon key are public browser configuration by desig
 - Supabase free-tier quotas and policies can change; check its current dashboard for limits.
 - If you change the admin account, update the UUID in the SQL policies and in `supabase-config.js`.
 - The contact email is configured in `supabase-config.js` (`PORTFOLIO_EMAIL`). The Instagram handle is set to `@artsbyprathamm` in `index.html`; update its profile URL there if the handle changes.
+
+## Buy now and payments
+
+1. Run `supabase-payments.sql` once in the Supabase SQL Editor (adds the optional `pay_link` column).
+2. Put your real UPI ID in `payment-config.js`.
+3. In the admin panel, paste a single-use payment link (for example from Razorpay) into **Payment link** for each artwork. Test with Test Mode first.
+4. When a piece is paid for, set its availability to **Sold** (or **Reserved** while you wait for payment).
+Never put a payment gateway secret key in any website file.

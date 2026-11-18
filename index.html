@@ -119,7 +119,8 @@
           <div><dt>Price</dt><dd id="details-price"></dd></div>
           <div><dt>Availability</dt><dd id="details-availability"></dd></div>
         </dl>
-        <a class="button button-light" id="details-enquire" href="#">Enquire about this artwork <span>↗</span></a>
+        <div class="buy-box" id="buy-box"></div>
+        <a class="enquire-link" id="details-enquire" href="#">Enquire about this artwork <span>↗</span></a>
       </div>
     </div>
   </dialog>
@@ -155,7 +156,9 @@
         <label>Size<input id="art-size" placeholder="A3 / 11 × 15 inches"></label>
         <label>Price (INR)<input id="art-price" type="number" min="0" step="1" placeholder="e.g. 2500"></label>
       </div>
-      <label>Availability<select id="art-availability"><option value="Available">Available</option><option value="Made to order">Made to order</option><option value="Sold">Sold</option><option value="Not for sale">Not for sale</option></select></label>
+      <label>Availability<select id="art-availability"><option value="Available">Available</option><option value="Made to order">Made to order</option><option value="Reserved">Reserved</option><option value="Sold">Sold</option><option value="Not for sale">Not for sale</option></select></label>
+      <label>Payment link (optional)<input id="art-pay-link" type="url" placeholder="https://rzp.io/l/..."></label>
+      <p class="admin-note">Paste a single-use Razorpay (or other) payment link for this artwork. Leave empty to accept only UPI and email enquiries.</p>
       <label>Artwork details<textarea id="art-description" rows="3" maxlength="1000" placeholder="A short description of this artwork..."></textarea></label>
       <label>Artwork photo<input id="art-image" type="file" accept="image/jpeg,image/png,image/webp"></label>
       <p class="admin-note">Use a clear photo of your original drawing. JPG, PNG or WebP, up to 5 MB.</p>
@@ -179,6 +182,7 @@
   </dialog>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
+  <script src="payment-config.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
