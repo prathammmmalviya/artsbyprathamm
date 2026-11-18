@@ -11,7 +11,7 @@ nav.querySelectorAll('a').forEach(link => link.addEventListener('click', () => {
   menuButton.textContent = '☰';
 }));
 document.getElementById('year').textContent = new Date().getFullYear();
-const contactEmail = window.PORTFOLIO_EMAIL || 'your-email@example.com';
+const contactEmail = window.PORTFOLIO_EMAIL || 'artsbyprathamm@gmail.com';
 const contactEmailLink = document.getElementById('contact-email');
 if (contactEmailLink) contactEmailLink.href = `mailto:${contactEmail}`;
 
