@@ -29,6 +29,13 @@ const dashboardDialog = document.getElementById('admin-dashboard-dialog');
 const detailsDialog = document.getElementById('art-details-dialog');
 let currentUser = null;
 let artworks = [];
+let activePaymentArtwork = null;
+let paymentExpiryInterval = null;
+let paymentExpiresAt = 0;
+let paymentReference = '';
+let paymentOrderId = '';
+let paymentStatus = 'Pending';
+let customerOrderDetails = null;
 
 function money(value) {
   if (value === null || value === undefined || value === '') return 'Ask for price';
@@ -90,33 +97,151 @@ function renderBuyBox(art) {
     `Hello, I have paid for "${art.title}" (${money(price)}).\n\nName:\nPhone:\nShipping address:\nPayment reference / screenshot:`);
   const paidLink = `mailto:${contactEmail}?subject=${paidSubject}&body=${paidBody}`;
 
-  const methods = [];
-  if (payLink) methods.push(`<a class="pay-method" href="${escapeHtml(payLink)}" target="_blank" rel="noopener noreferrer"><strong>Card · UPI · Netbanking</strong><small>Secure online payment</small></a>`);
-  if (upiLink) methods.push(`<a class="pay-method" href="${escapeHtml(upiLink)}"><strong>Pay with UPI app</strong><small>GPay, PhonePe, Paytm (on phone)</small></a>`);
-  methods.push(`<a class="pay-method" href="mailto:${contactEmail}?subject=${encodeURIComponent('Bank transfer: ' + art.title)}"><strong>Bank transfer</strong><small>Email me for account details</small></a>`);
-
   box.innerHTML = `
-    <button class="buy-btn" type="button" id="buy-now-btn" aria-expanded="false">${advance ? 'Pay advance' : 'Buy now'} · ${money(price)} <span>↗</span></button>
-    <div class="pay-panel" id="pay-panel" hidden>
-      <p class="pay-title">Choose how to pay</p>
-      ${methods.join('')}
-      ${upiLink ? `<p class="pay-upi">UPI ID: <code>${escapeHtml(UPI_ID)}</code> <button type="button" id="copy-upi">Copy</button></p>` : ''}
-      <p class="pay-note">${advance ? 'This piece is made to order, so the advance secures your commission. ' : ''}After paying, <a href="${paidLink}">email me</a> your name, phone, shipping address and payment reference so I can arrange delivery.</p>
-    </div>`;
+    <button class="buy-btn" type="button" id="buy-now-btn" aria-expanded="false">${advance ? 'Pay advance' : 'Buy now'} · ${money(price)} <span>↗</span></button>`;
 
   const buyBtn = document.getElementById('buy-now-btn');
-  const panel = document.getElementById('pay-panel');
-  buyBtn.addEventListener('click', () => {
-    panel.hidden = !panel.hidden;
-    buyBtn.setAttribute('aria-expanded', String(!panel.hidden));
-  });
-  const copyBtn = document.getElementById('copy-upi');
-  if (copyBtn) copyBtn.addEventListener('click', async () => {
-    try { await navigator.clipboard.writeText(UPI_ID); copyBtn.textContent = 'Copied'; }
-    catch { copyBtn.textContent = UPI_ID; }
-    setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1800);
-  });
+  buyBtn.addEventListener('click', () => openUpiPayment(art));
 }
+const paymentDialog = document.getElementById('upi-payment-dialog');
+const paymentQr = document.getElementById('upi-qr-code');
+const paymentQrFrame = document.getElementById('upi-qr-frame');
+const paymentCountdown = document.getElementById('upi-countdown');
+const paymentExpired = document.getElementById('upi-expired');
+const paymentNewButton = document.getElementById('upi-new-qr');
+
+function formatCountdown(ms) {
+  const seconds = Math.max(0, Math.ceil(ms / 1000));
+  return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+}
+function expirePaymentQr() {
+  if (paymentExpiryInterval) clearInterval(paymentExpiryInterval);
+  paymentExpiryInterval = null;
+  paymentQr.replaceChildren();
+  paymentQrFrame.hidden = true;
+  paymentCountdown.hidden = true;
+  paymentExpired.hidden = false;
+  paymentNewButton.hidden = false;
+}
+function startPaymentCountdown() {
+  if (paymentExpiryInterval) clearInterval(paymentExpiryInterval);
+  paymentExpiresAt = Date.now() + 5 * 60 * 1000;
+  paymentCountdown.hidden = false;
+  paymentExpired.hidden = true;
+  paymentNewButton.hidden = true;
+  paymentQrFrame.hidden = false;
+  const tick = () => {
+    const remaining = paymentExpiresAt - Date.now();
+    if (remaining <= 0) { paymentCountdown.textContent = '00:00'; expirePaymentQr(); return; }
+    paymentCountdown.textContent = formatCountdown(remaining);
+  };
+  tick();
+  paymentExpiryInterval = setInterval(tick, 250);
+}
+function openUpiPayment(art) {
+  activePaymentArtwork = art;
+  if (!UPI_ID) {
+    alert('UPI ID is not configured. Please contact the artist.');
+    return;
+  }
+  if (typeof QRCode === 'undefined') {
+    alert('QR generator could not load. Please check your internet connection and try again.');
+    return;
+  }
+  document.getElementById('upi-artwork-name').textContent = art.title || 'Artwork';
+  document.getElementById('upi-payment-amount').textContent = money(art.price);
+  paymentOrderId = `ABP-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+  paymentStatus = 'Pending';
+  customerOrderDetails = null;
+  document.getElementById('upi-order-id').textContent = paymentOrderId;
+  document.getElementById('upi-payment-status').textContent = 'Payment status: Awaiting confirmation';
+  document.getElementById('upi-i-paid').disabled = false;
+  document.getElementById('customer-details-form').reset();
+  document.getElementById('customer-details-form').hidden = false;
+  document.getElementById('upi-payment-stage').hidden = true;
+  const alternatives = document.getElementById('upi-alternative-methods');
+  const payLink = safePayLink(art.pay_link);
+  const bankHref = `mailto:${contactEmail}?subject=${encodeURIComponent('Bank transfer: ' + art.title)}`;
+  alternatives.innerHTML = `${payLink ? `<a class="pay-method" href="${escapeHtml(payLink)}" target="_blank" rel="noopener noreferrer"><strong>Card · UPI · Netbanking</strong><small>Secure online payment</small></a>` : ''}<a class="pay-method" href="${bankHref}"><strong>Bank transfer</strong><small>Email me for account details</small></a><p class="pay-upi">UPI ID: <code>${escapeHtml(UPI_ID)}</code> <button type="button" id="copy-upi">Copy</button></p>`;
+  const copyButton = document.getElementById('copy-upi');
+  copyButton.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(UPI_ID); copyButton.textContent = 'Copied'; }
+    catch { copyButton.textContent = UPI_ID; }
+    setTimeout(() => { copyButton.textContent = 'Copy'; }, 1800);
+  });
+  paymentDialog.showModal();
+}
+
+document.getElementById('customer-details-form').addEventListener('submit', (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  if (!form.reportValidity() || !activePaymentArtwork) return;
+  customerOrderDetails = {
+    name: document.getElementById('customer-name').value.trim(),
+    phone: document.getElementById('customer-phone').value.trim(),
+    address: document.getElementById('customer-address').value.trim(),
+    pincode: document.getElementById('customer-pincode').value.trim()
+  };
+  if (!customerOrderDetails.name || !customerOrderDetails.address) return;
+  document.getElementById('customer-details-form').hidden = true;
+  document.getElementById('upi-payment-stage').hidden = false;
+  document.getElementById('upi-payment-status').textContent = 'Payment status: Awaiting confirmation';
+  document.getElementById('upi-i-paid').disabled = false;
+  generatePaymentQr();
+});
+
+document.getElementById('edit-customer-details').addEventListener('click', () => {
+  document.getElementById('upi-payment-stage').hidden = true;
+  document.getElementById('customer-details-form').hidden = false;
+  if (customerOrderDetails) {
+    document.getElementById('customer-name').value = customerOrderDetails.name;
+    document.getElementById('customer-phone').value = customerOrderDetails.phone;
+    document.getElementById('customer-address').value = customerOrderDetails.address;
+    document.getElementById('customer-pincode').value = customerOrderDetails.pincode;
+  }
+  if (paymentExpiryInterval) clearInterval(paymentExpiryInterval);
+  paymentExpiryInterval = null;
+});
+function generatePaymentQr() {
+  if (!activePaymentArtwork) return;
+  const amount = Number(activePaymentArtwork.price);
+  if (!Number.isFinite(amount) || amount <= 0) return;
+  paymentReference = `ART${Date.now()}${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+  document.getElementById('upi-payment-reference').textContent = paymentReference;
+  const note = `Artwork: ${activePaymentArtwork.title}`;
+  const upiUri = `upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent(UPI_NAME)}&am=${amount.toFixed(2)}&cu=INR&tr=${encodeURIComponent(paymentReference)}&tn=${encodeURIComponent(note)}`;
+  paymentQr.replaceChildren();
+  new QRCode(paymentQr, {text: upiUri, width: 220, height: 220, colorDark: '#171613', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M});
+  startPaymentCountdown();
+}
+paymentNewButton.addEventListener('click', generatePaymentQr);
+document.getElementById('upi-i-paid').addEventListener('click', () => {
+  if (!activePaymentArtwork || !paymentOrderId || !paymentReference) return;
+  const subject = encodeURIComponent(`UPI payment verification: ${paymentOrderId}`);
+  const body = encodeURIComponent(
+    `Hello, I have made a UPI payment. Please verify it.\n\n` +
+    `Order ID: ${paymentOrderId}\n` +
+    `QR Payment reference: ${paymentReference}\n` +
+    `Artwork: ${activePaymentArtwork.title}\n` +
+    `Amount: ${money(activePaymentArtwork.price)}\n` +
+    `Customer name: ${customerOrderDetails?.name || ''}\n` +
+    `Mobile: ${customerOrderDetails?.phone || ''}\n` +
+    `Delivery address: ${customerOrderDetails?.address || ''}\n` +
+    `PIN code: ${customerOrderDetails?.pincode || ''}\n` +
+    `UPI transaction ID / UTR (from your UPI app):\n` +
+    `Please attach payment confirmation if available.`
+  );
+  document.getElementById('upi-payment-status').textContent = 'Payment status: Verification requested — not yet confirmed';
+  document.getElementById('upi-i-paid').disabled = true;
+  window.location.href = `mailto:${contactEmail}?subject=${subject}&body=${body}`;
+});
+document.getElementById('upi-payment-close').addEventListener('click', () => paymentDialog.close());
+paymentDialog.addEventListener('close', () => {
+  if (paymentExpiryInterval) clearInterval(paymentExpiryInterval);
+  paymentExpiryInterval = null;
+  paymentQr.replaceChildren();
+});
+
 function openArtworkDetails(art) {
   document.getElementById('details-image').src = art.image_url;
   document.getElementById('details-image').alt = art.title;

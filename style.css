@@ -122,3 +122,41 @@ body{background:var(--paper);color:var(--ink);letter-spacing:.005em}
 .pay-note{margin:0;font-size:10.5px;line-height:1.7;color:var(--muted)}
 .pay-note a{color:var(--accent);text-decoration:underline}
 .enquire-link{display:inline-block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;border-bottom:1px solid var(--accent);padding-bottom:5px}
+
+
+/* UPI QR payment popup */
+.upi-payment-dialog{width:min(92vw,440px);max-width:440px;max-height:90vh;overflow:auto;border:1px solid var(--line);padding:34px 28px 28px;background:var(--paper);color:var(--ink);box-shadow:0 24px 80px rgba(0,0,0,.28)}
+.upi-payment-dialog::backdrop{background:rgba(20,19,17,.72);backdrop-filter:blur(3px)}
+.upi-payment-content{text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px}
+.upi-payment-content h2{margin:0;font-family:var(--serif);font-size:clamp(30px,6vw,42px);font-weight:400}
+.upi-artwork-name{margin:0;color:var(--muted);font-size:12px}
+.upi-payment-amount{margin:0;font-size:25px;font-weight:600;letter-spacing:.02em}
+.upi-qr-frame{width:252px;height:252px;display:grid;place-items:center;padding:15px;background:#fff;border:1px solid var(--line)}
+#upi-qr-code{width:220px;height:220px;display:grid;place-items:center}
+#upi-qr-code img,#upi-qr-code canvas{display:block;max-width:100%;height:auto}
+.upi-instruction{margin:0;font-size:12px;color:var(--muted)}
+.upi-order-meta{width:100%;display:grid;gap:5px;padding:10px 12px;border:1px solid var(--line);font-size:11px;color:var(--muted);overflow-wrap:anywhere}
+.upi-order-meta p{margin:0}
+.upi-order-meta code{color:var(--ink);font-size:10px}
+#upi-payment-status{font-weight:600;color:var(--ink)}
+#upi-i-paid:disabled{opacity:.55;cursor:not-allowed}
+.upi-countdown{margin:0;font-variant-numeric:tabular-nums;font-size:20px;font-weight:700;letter-spacing:.12em}
+.upi-expired{margin:0;font-size:20px;font-weight:700;letter-spacing:.08em;color:#a33b30}
+.upi-payment-content .button{margin-top:4px;cursor:pointer}
+.upi-payment-hint{max-width:310px;margin:4px 0 0;font-size:10px;line-height:1.6;color:var(--muted)}
+@media(max-width:480px){.upi-payment-dialog{padding:30px 18px 22px}.upi-qr-frame{width:242px;height:242px}.upi-payment-content{gap:10px}}
+
+.upi-alternative-methods{width:100%;display:grid;gap:8px;text-align:left;margin-top:4px}.upi-alternative-methods .pay-method{background:rgba(255,255,255,.35)}
+
+
+/* Customer delivery details step in the existing checkout popup */
+.customer-details-form{width:100%;display:grid;gap:9px;text-align:left;margin-top:8px;padding:16px;border:1px solid var(--line);background:rgba(255,255,255,.32)}
+.customer-details-form[hidden],#upi-payment-stage[hidden]{display:none}
+.customer-form-title{margin:0 0 4px;font:600 9px var(--sans);letter-spacing:.18em;color:var(--muted)}
+.customer-details-form label{font:600 10px var(--sans);letter-spacing:.04em;color:var(--ink);margin-top:3px}
+.customer-details-form input,.customer-details-form textarea{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:0;padding:11px 12px;background:#fff;color:var(--ink);font:12px var(--sans);outline-offset:2px}
+.customer-details-form textarea{resize:vertical;min-height:76px}
+.customer-details-form input:focus,.customer-details-form textarea:focus{border-color:var(--accent)}
+.customer-details-form .button{width:100%;justify-content:center;margin-top:7px}
+.customer-details-note{margin:0;font-size:9px;line-height:1.6;color:var(--muted);text-align:center}
+.customer-edit-button{border:0;border-bottom:1px solid var(--line);padding:5px 0;background:transparent;color:var(--muted);font:600 9px var(--sans);letter-spacing:.1em;text-transform:uppercase;cursor:pointer}

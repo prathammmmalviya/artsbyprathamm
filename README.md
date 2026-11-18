@@ -58,8 +58,9 @@ Your Supabase project URL and anon key are public browser configuration by desig
 
 ## Buy now and payments
 
-1. Run `supabase-payments.sql` once in the Supabase SQL Editor (adds the optional `pay_link` column).
-2. Put your real UPI ID in `payment-config.js`.
-3. In the admin panel, paste a single-use payment link (for example from Razorpay) into **Payment link** for each artwork. Test with Test Mode first.
-4. When a piece is paid for, set its availability to **Sold** (or **Reserved** while you wait for payment).
-Never put a payment gateway secret key in any website file.
+1. Put your real UPI ID in `payment-config.js`.
+2. The Buy now popup creates an Order ID and a fresh QR payment reference for each QR.
+3. After paying, the customer can tap **I have paid** to open an email containing the order details and a field for the UPI transaction ID / UTR. The artist must verify the payment in their UPI/bank app before treating the order as paid.
+4. This static-site version does **not** automatically verify UPI payments, generate a bank-issued transaction ID, or store payment records in Supabase. The displayed Order ID and QR reference are website-generated tracking references, not proof of payment.
+5. For automatic success confirmation and gateway-issued Payment IDs, connect a payment gateway with a server-side order-creation and webhook verification endpoint. Keep all gateway secret keys on the server; never put them in website files.
+6. When a piece is confirmed paid, set its availability to **Sold** (or **Reserved** while awaiting verification).

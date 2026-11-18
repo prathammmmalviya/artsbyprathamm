@@ -125,6 +125,46 @@
     </div>
   </dialog>
 
+  <dialog class="upi-payment-dialog" id="upi-payment-dialog" aria-labelledby="upi-payment-title">
+    <button class="lightbox-close" id="upi-payment-close" aria-label="Close payment">×</button>
+    <div class="upi-payment-content">
+      <p class="eyebrow">SECURE UPI PAYMENT</p>
+      <h2 id="upi-payment-title">Scan to <em>pay.</em></h2>
+      <p class="upi-artwork-name" id="upi-artwork-name"></p>
+      <p class="upi-payment-amount" id="upi-payment-amount"></p>
+      <form id="customer-details-form" class="customer-details-form">
+        <p class="customer-form-title">DELIVERY DETAILS</p>
+        <label for="customer-name">Full name</label>
+        <input id="customer-name" name="name" type="text" autocomplete="name" maxlength="100" required placeholder="Your full name">
+        <label for="customer-phone">Mobile number</label>
+        <input id="customer-phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel" pattern="[6-9][0-9]{9}" maxlength="10" required placeholder="10-digit mobile number" title="Enter a valid 10-digit Indian mobile number">
+        <label for="customer-address">Full delivery address</label>
+        <textarea id="customer-address" name="address" rows="3" autocomplete="street-address" maxlength="500" required placeholder="House / street, area, city, state"></textarea>
+        <label for="customer-pincode">PIN code</label>
+        <input id="customer-pincode" name="pincode" type="text" inputmode="numeric" autocomplete="postal-code" pattern="[1-9][0-9]{5}" maxlength="6" required placeholder="6-digit PIN code" title="Enter a valid 6-digit Indian PIN code">
+        <button class="button button-light" type="submit">Continue to payment <span>↗</span></button>
+        <p class="customer-details-note">Your details will be included in the order email to the artist for delivery coordination.</p>
+      </form>
+      <div id="upi-payment-stage" hidden>
+      <div class="upi-qr-frame" id="upi-qr-frame"><div id="upi-qr-code" aria-label="UPI payment QR code"></div></div>
+      <p class="upi-instruction">Scan using any UPI app to pay.</p>
+      <div class="upi-order-meta" aria-live="polite">
+        <p>Order ID: <code id="upi-order-id">—</code></p>
+        <p>Payment reference: <code id="upi-payment-reference">—</code></p>
+        <p id="upi-payment-status">Payment status: Awaiting confirmation</p>
+      </div>
+      <button class="button button-light" id="upi-i-paid" type="button">I have paid</button>
+      <p class="upi-payment-hint" id="upi-payment-confirmation-hint">After paying, tap “I have paid” and share the UPI transaction ID (UTR) so the artist can verify it.</p>
+      <p class="upi-countdown" id="upi-countdown" role="timer">05:00</p>
+      <p class="upi-expired" id="upi-expired" hidden>QR Expired</p>
+      <button class="button button-light" id="upi-new-qr" type="button" hidden>Generate New QR <span>↻</span></button>
+      <p class="upi-payment-hint">Complete the payment in your UPI app. Payment is confirmed separately after you share the transaction reference.</p>
+      <div class="upi-alternative-methods" id="upi-alternative-methods"></div>
+      <button class="customer-edit-button" id="edit-customer-details" type="button">Edit delivery details</button>
+      </div>
+    </div>
+  </dialog>
+
   <dialog class="admin-dialog" id="admin-login-dialog">
     <button class="lightbox-close" data-close-dialog="admin-login-dialog" aria-label="Close">×</button>
     <p class="eyebrow">PRIVATE AREA</p>
@@ -183,6 +223,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
   <script src="payment-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
